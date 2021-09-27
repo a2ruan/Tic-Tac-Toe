@@ -1,0 +1,23 @@
+Purpose: Play tic tac toe via 2 players
+
+Functional Requirements:
+- Allow players to play tic tac toe game
+- Allow player creation
+- Allow player to reset score
+- Allow player to save their score as win/lose
+- Display tic tack toe as GUI grid
+
+
+Structure:
+- Game
+	- init=initialize game
+	- set_piece=set grid
+	- get_winner=calculate winner 
+	- get_board=display board
+- Player	
+	- init=initialize player
+	- get_score=get win/lose rate
+	- set_score=set win/lose rate
+	- reset_score=reset win/lose rate 
+	- set_name=set player name
+	- get_name=get player name
