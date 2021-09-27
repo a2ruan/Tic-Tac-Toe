@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import *
 import time
 from qt_material import apply_stylesheet 
 from PyQt5 import QtCore
-from controller import *
+from main import *
 
 class Widget(QWidget):
     #Global constants
@@ -24,6 +24,7 @@ class Widget(QWidget):
     PRIMARY_COLOR = "#1de9b6"
     SECONDARY_COLOR = "#1976D2"
     TERTIARY_COLOR = "#018786"
+    LOSER_COLOR = "#D3D3D3"
 
     #Constructor
     def __init__(self, app):
@@ -31,7 +32,6 @@ class Widget(QWidget):
         # Input of constructor is a pointer to (self), to access all instance variables
         self.thread = ControllerThread(self)
         self.thread.start()
-        self.player_move_signal = pyqtSignal()
 
         # Instance variables
         self.scores = [0,0,0]
@@ -50,12 +50,13 @@ class Widget(QWidget):
         self.k = 0
         self.set_widgets()
 
+        self.winner_indicator = False
+
     def connect_and_emit_trigger(self):
         self.trigger.connect(self.handle_trigger)
 
     def handle_trigger(self):
         print("trigger signal recieved")
-
 
     #Trigger on mouse click
     def mousePressEvent(self, QMouseEvent):
@@ -72,7 +73,7 @@ class Widget(QWidget):
                         if self.grid_content[(i-1)*3] == 0:
                             self.player_turn = self.player_turn*(-1) # Change player turn
                             self.grid_content[(i-1)*3] = self.player_turn # Update player moves
-                            self.player
+                            self.thread.set_piece(self.player_turn, (i-1)*3+1)
                             #print(str(1+(i-1)*3))
                         break
                     elif x_pos <= self.get_click_limit(2):
@@ -80,12 +81,14 @@ class Widget(QWidget):
                         if self.grid_content[1+(i-1)*3] == 0:
                             self.player_turn = self.player_turn*(-1)
                             self.grid_content[1+(i-1)*3] = self.player_turn
+                            self.thread.set_piece(self.player_turn, (i-1)*3+2)
                         break
                     else:
                         #print(str(3+(i-1)*3))
                         if self.grid_content[2+(i-1)*3] == 0:
                             self.player_turn = self.player_turn*(-1)
                             self.grid_content[2+(i-1)*3] = self.player_turn
+                            self.thread.set_piece(self.player_turn, (i-1)*3+3)
                         break
             self.update() # Update GUI Painter, to display X or O on grid
         #print(self.grid_content)
@@ -165,18 +168,38 @@ class Widget(QWidget):
     #Restart game by resetting player moves and updating painter
     def restart_game(self):
         self.grid_content = [0]*9
+        self.winner_indicator = False
         self.update()
 
     #Restart game and reset all player scores
     def reset_score(self):
+        #print("resetting score")
         self.restart_game()
         self.scores = [0,0,0]
+        self.update_labels()
+
+    def set_score(self,score):
+        self.scores = score
+        #print("setting score")
+        #print(self.score)
+        self.update_labels()
+
+    def update_labels(self):
         self.l_player1_wins.setText("Wins: "+ str(self.scores[0]))
         self.l_ties.setText("Ties: "+ str(self.scores[1]))
         self.l_player2_wins.setText("Wins: "+ str(self.scores[2]))
 
-    def set_score(self,score):
-        self.score = score
+        self.l_player1_wins.update()
+        self.l_player2_wins.update()
+        self.l_ties.update()
+
+    def flash_winner(self, win_case):
+        self.winner_indicator = True
+        for i in range(len(self.grid_content)):
+            if i+1 in (win_case):
+                self.grid_content[i] *= 2
+        print(self.grid_content)
+        self.update()
 
     def get_board(self):
         return self.grid_content
@@ -202,15 +225,35 @@ class Widget(QWidget):
         cross_size = int(grid_size*0.6)
         kk = int(grid_size*0.15)
 
+        # Update piece colors if winner detected
+        if self.winner_indicator:
+            player_1_color = self.LOSER_COLOR
+            player_2_color = self.LOSER_COLOR
+        else:
+            player_1_color = self.PRIMARY_COLOR
+            player_2_color = self.SECONDARY_COLOR
+
+
         # Update grid based on player moves matrix => grid_content
         for i in range(3):
             for j in range(3):
                 grid_center_point = QPointF(self.WINDOW_MARGIN+grid_size*(i+0.5),self.WINDOW_MARGIN+grid_size*(j+0.5))
                 if self.grid_content[i+j*3]==1:
-                    painter.setPen(QPen(QColor(self.PRIMARY_COLOR),self.ELEMENT_THICKNESS,Qt.SolidLine))
+                    painter.setPen(QPen(QColor(player_1_color),self.ELEMENT_THICKNESS,Qt.SolidLine))
+                    painter.drawEllipse(grid_center_point,circle_size,circle_size)
+                if self.grid_content[i+j*3]==2:
+                    print("2")
+                    painter.setPen(QPen(QColor(self.PRIMARY_COLOR),self.ELEMENT_THICKNESS+6,Qt.SolidLine))
                     painter.drawEllipse(grid_center_point,circle_size,circle_size)
                 if self.grid_content[i+j*3]==-1:
-                    painter.setPen(QPen(QColor(self.SECONDARY_COLOR),self.ELEMENT_THICKNESS,Qt.SolidLine))
+                    painter.setPen(QPen(QColor(player_2_color),self.ELEMENT_THICKNESS,Qt.SolidLine))
+                    painter.drawLine(self.WINDOW_MARGIN+kk+grid_size*(i),self.WINDOW_MARGIN+grid_size*(j+1)-kk,\
+                        self.WINDOW_MARGIN-kk+grid_size*(i+1),self.WINDOW_MARGIN+grid_size*(j)+kk)
+                    painter.drawLine(self.WINDOW_MARGIN+kk+grid_size*(i),self.WINDOW_MARGIN+grid_size*(j)+kk,\
+                        self.WINDOW_MARGIN-kk+grid_size*(i+1),self.WINDOW_MARGIN+grid_size*(j+1)-kk)
+                if self.grid_content[i+j*3]==-2:
+                    print("-2")
+                    painter.setPen(QPen(QColor(self.SECONDARY_COLOR),self.ELEMENT_THICKNESS+6,Qt.SolidLine))
                     painter.drawLine(self.WINDOW_MARGIN+kk+grid_size*(i),self.WINDOW_MARGIN+grid_size*(j+1)-kk,\
                         self.WINDOW_MARGIN-kk+grid_size*(i+1),self.WINDOW_MARGIN+grid_size*(j)+kk)
                     painter.drawLine(self.WINDOW_MARGIN+kk+grid_size*(i),self.WINDOW_MARGIN+grid_size*(j)+kk,\
