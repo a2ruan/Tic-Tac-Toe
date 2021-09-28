@@ -3,7 +3,8 @@ This repository contains python based interactive Tic-Tac-Toe game
 
 # Graphical User Interface
 ## Material Design (Dark Teal)
-![image](https://user-images.githubusercontent.com/30330337/134968081-f22180b4-2d41-4092-9f90-5c59f254a5b2.png)
+![55f8fddc967cc7bc455accb3ef522d1e](https://user-images.githubusercontent.com/30330337/135153272-ccfc9028-812d-45db-b7d3-a536bfb02789.gif)
+
 
 # Features
 1. Create player, game and GUI instances
